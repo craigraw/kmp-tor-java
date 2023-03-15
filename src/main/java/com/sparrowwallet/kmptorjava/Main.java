@@ -35,74 +35,75 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+
+        PlatformInstaller installer = PlatformInstaller.macosArm64(PlatformInstaller.InstallOption.CleanInstallIfMissing);
+        TorConfigProviderJvm torConfigProviderJvm = new TorConfigProviderJvm() {
+            @NotNull
+            @Override
+            public Path getWorkDir() {
+                return path.builder().addSegment("work").build();
+            }
+
+            @NotNull
+            @Override
+            public Path getCacheDir() {
+                return path.builder().addSegment("cache").build();
+            }
+
+            @NotNull
+            @Override
+            protected TorConfig provide() {
+                TorConfig.Builder builder = new TorConfig.Builder();
+                TorConfig.Setting.Ports.Socks socks = new TorConfig.Setting.Ports.Socks();
+                socks.set(TorConfig.Option.AorDorPort.Value.invoke(PortProxy.invoke(9050)));
+                builder.put(socks);
+
+                TorConfig.Setting.Ports.Control control = new TorConfig.Setting.Ports.Control();
+                control.set(TorConfig.Option.AorDorPort.Value.invoke(PortProxy.invoke(9051)));
+                builder.put(control);
+
+                TorConfig.Setting.DormantCanceledByStartup dormantCanceledByStartup = new TorConfig.Setting.DormantCanceledByStartup();
+                dormantCanceledByStartup.set(TorConfig.Option.AorTorF.getTrue());
+                builder.put(dormantCanceledByStartup);
+
+                return builder.build();
+            }
+        };
+
+        KmpTorLoaderJvm jvmLoader = new KmpTorLoaderJvm(installer, torConfigProviderJvm);
+        torManager = TorManager.newInstance(jvmLoader);
+
+        torManager.debug(true);
+        torManager.addListener(new TorManagerEvent.SealedListener() {
+            @Override
+            public void onEvent(@NotNull TorManagerEvent torManagerEvent) {
+                System.out.println(torManagerEvent.toString());
+            }
+
+            @Override
+            public void onEvent(@NotNull TorEvent.Type.SingleLineEvent singleLineEvent, @NotNull String s) {
+                System.out.println(singleLineEvent.toString() + " - " + s);
+            }
+
+            @Override
+            public void onEvent(@NotNull TorEvent.Type.MultiLineEvent multiLineEvent, @NotNull List<String> list) {
+                System.out.println(multiLineEvent.toString() + " - " + list.toString());
+            }
+        });
+
         primaryStage.setTitle("KMP Tor Java");
         Button btn = new Button();
         btn.setText("Start Tor");
         btn.setOnAction(event -> {
-            PlatformInstaller installer = PlatformInstaller.macosArm64(PlatformInstaller.InstallOption.CleanInstallIfMissing);
-            TorConfigProviderJvm torConfigProviderJvm = new TorConfigProviderJvm() {
-                @NotNull
-                @Override
-                public Path getWorkDir() {
-                    return path.builder().addSegment("work").build();
-                }
-
-                @NotNull
-                @Override
-                public Path getCacheDir() {
-                    return path.builder().addSegment("cache").build();
-                }
-
-                @NotNull
-                @Override
-                protected TorConfig provide() {
-                    TorConfig.Builder builder = new TorConfig.Builder();
-                    TorConfig.Setting.Ports.Socks socks = new TorConfig.Setting.Ports.Socks();
-                    socks.set(TorConfig.Option.AorDorPort.Value.invoke(PortProxy.invoke(9050)));
-                    builder.put(socks);
-
-                    TorConfig.Setting.Ports.Control control = new TorConfig.Setting.Ports.Control();
-                    control.set(TorConfig.Option.AorDorPort.Value.invoke(PortProxy.invoke(9051)));
-                    builder.put(control);
-
-                    TorConfig.Setting.DormantCanceledByStartup dormantCanceledByStartup = new TorConfig.Setting.DormantCanceledByStartup();
-                    dormantCanceledByStartup.set(TorConfig.Option.AorTorF.getTrue());
-                    builder.put(dormantCanceledByStartup);
-
-                    return builder.build();
-                }
-            };
-
-            KmpTorLoaderJvm jvmLoader = new KmpTorLoaderJvm(installer, torConfigProviderJvm);
-            torManager = TorManager.newInstance(jvmLoader);
-
-            torManager.debug(true);
-            torManager.addListener(new TorManagerEvent.SealedListener() {
-                @Override
-                public void onEvent(@NotNull TorManagerEvent torManagerEvent) {
-                    System.out.println(torManagerEvent.toString());
-                }
-
-                @Override
-                public void onEvent(@NotNull TorEvent.Type.SingleLineEvent singleLineEvent, @NotNull String s) {
-                    System.out.println(singleLineEvent.toString() + " - " + s);
-                }
-
-                @Override
-                public void onEvent(@NotNull TorEvent.Type.MultiLineEvent multiLineEvent, @NotNull List<String> list) {
-                    System.out.println(multiLineEvent.toString() + " - " + list.toString());
-                }
-            });
-
             torManager.startQuietly();
+        });
 
-            primaryStage.setOnCloseRequest(event1 -> {
-                torManager.destroy(true, () -> {
-                    Platform.exit();
-                    return Unit.INSTANCE;
-                });
-                event.consume();
+        primaryStage.setOnCloseRequest(event -> {
+            torManager.destroy(true, () -> {
+                Platform.exit();
+                return Unit.INSTANCE;
             });
+            event.consume();
         });
 
         StackPane root = new StackPane();
@@ -115,7 +116,11 @@ public class Main extends Application {
     public void stop() throws Exception {
         super.stop();
         if(torManager != null) {
-            torManager.destroy(true, () -> {
+            // This is only a stop gap here if the close intercept fails or something
+            // By passing `false`, it will not "stopCleanly" and do an immediate disconnect
+            // of the TorController, resulting in Tor stopping b/c it's control port owner has
+            // cut the connection.
+            torManager.destroy(false, () -> {
                 Platform.exit();
                 return Unit.INSTANCE;
             });
