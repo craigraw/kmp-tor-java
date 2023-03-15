@@ -116,7 +116,11 @@ public class Main extends Application {
     public void stop() throws Exception {
         super.stop();
         if(torManager != null) {
-            torManager.destroy(true, () -> {
+            // This is only a stop gap here if the close intercept fails or something
+            // By passing `false`, it will not "stopCleanly" and do an immediate disconnect
+            // of the TorController, resulting in Tor stopping b/c it's control port owner has
+            // cut the connection.
+            torManager.destroy(false, () -> {
                 Platform.exit();
                 return Unit.INSTANCE;
             });
