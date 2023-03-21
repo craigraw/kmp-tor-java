@@ -39,7 +39,11 @@ dependencies {
     def vKmpTor = '1.4.0'
 
     implementation "io.matthewnelson.kotlin-components:kmp-tor:$vTor-$vKmpTor"
-    implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-$kmpOs$kmpArch:$vTor")
+    if(kmpOs == "linux" && kmpArch == "arm64") {
+        implementation("com.sparrowwallet.kmp-tor-binary:kmp-tor-binary-$kmpOs$kmpArch-jvm:$vTor")
+    } else {
+        implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-$kmpOs$kmpArch:$vTor")
+    }
     implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-extract:$vTor")
 
     implementation('org.jetbrains.kotlinx:kotlinx-coroutines-javafx:1.6.4')
