@@ -56,12 +56,12 @@ public class Main extends Application {
             installer = PlatformInstaller.mingwX64(installOption);
         } else if(platform == Platform.UNIX) {
             if(arch.equals("aarch64")) {
-                installer = PlatformInstaller.linuxX64(installOption);
-            } else {
                 TorBinaryResource linuxArm64 = TorBinaryResource.from(TorBinaryResource.OS.Linux, "arm64",
                         "588496f3164d52b91f17e4db3372d8dfefa6366a8df265eebd4a28d4128992aa",
                         List.of("libevent-2.1.so.7", "libstdc++.so.6", "libcrypto.so.1.1", "tor", "libssl.so.1.1"));
                 installer = PlatformInstaller.custom(installOption, linuxArm64);
+            } else {
+                installer = PlatformInstaller.linuxX64(installOption);
             }
         } else {
             throw new UnsupportedOperationException("Tor is not supported on " + platform + " " + arch);
