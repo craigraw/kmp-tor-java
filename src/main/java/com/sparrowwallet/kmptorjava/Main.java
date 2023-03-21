@@ -58,7 +58,7 @@ public class Main extends Application {
             if(arch.equals("aarch64")) {
                 TorBinaryResource linuxArm64 = TorBinaryResource.from(TorBinaryResource.OS.Linux, "arm64",
                         "588496f3164d52b91f17e4db3372d8dfefa6366a8df265eebd4a28d4128992aa",
-                        List.of("libevent-2.1.so.7", "libstdc++.so.6", "libcrypto.so.1.1", "tor", "libssl.so.1.1"));
+                        List.of("libevent-2.1.so.7.gz", "libstdc++.so.6.gz", "libcrypto.so.1.1.gz", "tor.gz", "libssl.so.1.1.gz"));
                 installer = PlatformInstaller.custom(installOption, linuxArm64);
             } else {
                 installer = PlatformInstaller.linuxX64(installOption);
