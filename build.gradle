@@ -40,6 +40,7 @@ dependencies {
 
     implementation "io.matthewnelson.kotlin-components:kmp-tor:$vTor-$vKmpTor"
     implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-$kmpOs$kmpArch:$vTor")
+    implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-extract:$vTor")
 
     implementation('org.jetbrains.kotlinx:kotlinx-coroutines-javafx:1.6.4')
 }

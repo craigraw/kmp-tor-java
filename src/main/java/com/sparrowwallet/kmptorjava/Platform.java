@@ -43,12 +43,7 @@ public enum Platform {
         if ( osName.startsWith("Mac") )     return OSX;
         if ( osName.startsWith("SunOS") )   return UNIX;
         if ( osName.startsWith("Linux") ) {
-            String javafxPlatform = AccessController.doPrivileged(new PrivilegedAction<String>() {
-                @Override
-                public String run() {
-                    return System.getProperty("javafx.platform");
-                }
-            });
+            String javafxPlatform = System.getProperty("javafx.platform");
             if (! ( "android".equals(javafxPlatform) || "Dalvik".equals(System.getProperty("java.vm.name")) ) ) // if not Android
                 return UNIX;
         }
