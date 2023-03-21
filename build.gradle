@@ -6,8 +6,23 @@ plugins {
 group 'com.sparrowwallet'
 version '1.0-SNAPSHOT'
 
+def os = org.gradle.internal.os.OperatingSystem.current()
+def osName = os.getFamilyName()
+
+def kmpOs = osName
+if(os.macOsX) {
+    kmpOs = "macos"
+} else if(os.windows) {
+    kmpOs = "mingw"
+}
+def kmpArch = "x64"
+if(System.getProperty("os.arch") == "aarch64") {
+    kmpArch = "arm64"
+}
+
 repositories {
     mavenCentral()
+    maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
 }
 
 application {
@@ -20,11 +35,11 @@ javafx {
 }
 
 dependencies {
-    def vTor = '4.7.13-1'
+    def vTor = '4.7.13-2'
     def vKmpTor = '1.4.0'
 
     implementation "io.matthewnelson.kotlin-components:kmp-tor:$vTor-$vKmpTor"
-    implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-macosarm64:$vTor")
+    implementation("io.matthewnelson.kotlin-components:kmp-tor-binary-$kmpOs$kmpArch:$vTor")
 
     implementation('org.jetbrains.kotlinx:kotlinx-coroutines-javafx:1.6.4')
 }

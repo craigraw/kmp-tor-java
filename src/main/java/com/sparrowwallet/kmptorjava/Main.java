@@ -3,40 +3,70 @@ package com.sparrowwallet.kmptorjava;
 import io.matthewnelson.kmp.tor.KmpTorLoaderJvm;
 import io.matthewnelson.kmp.tor.PlatformInstaller;
 import io.matthewnelson.kmp.tor.TorConfigProviderJvm;
+import io.matthewnelson.kmp.tor.binary.extract.TorBinaryResource;
 import io.matthewnelson.kmp.tor.common.address.PortProxy;
+import io.matthewnelson.kmp.tor.common.address.ProxyAddress;
 import io.matthewnelson.kmp.tor.controller.common.config.TorConfig;
-import io.matthewnelson.kmp.tor.controller.common.events.TorEvent;
 import io.matthewnelson.kmp.tor.controller.common.file.Path;
 import io.matthewnelson.kmp.tor.manager.TorManager;
-import io.matthewnelson.kmp.tor.manager.common.TorOperationManager;
 import io.matthewnelson.kmp.tor.manager.common.event.TorManagerEvent;
 import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import kotlin.Unit;
-import kotlin.jvm.internal.Intrinsics;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class Main extends Application {
-    private final Path path = Path.invoke(System.getProperty("java.io.tmpdir")).builder().addSegment(".kmp-tor-java").build();
+    private final Path path = Path.invoke(System.getProperty("user.home")).builder().addSegment(".kmp-tor-java").build();
 
     private TorManager torManager;
+    private static String onionAddress;
 
     public static void main(String[] args) {
+        if(args.length > 0) {
+            onionAddress = args[0];
+        }
+
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
+        Platform platform = Platform.getCurrent();
+        String arch = System.getProperty("os.arch");
+        PlatformInstaller installer;
+        PlatformInstaller.InstallOption installOption = PlatformInstaller.InstallOption.CleanInstallIfMissing;
 
-        PlatformInstaller installer = PlatformInstaller.macosArm64(PlatformInstaller.InstallOption.CleanInstallIfMissing);
+        if(platform == Platform.OSX) {
+            if(arch.equals("aarch64")) {
+                installer = PlatformInstaller.macosArm64(installOption);
+            } else {
+                installer = PlatformInstaller.macosX64(installOption);
+            }
+        } else if(platform == Platform.WINDOWS) {
+            installer = PlatformInstaller.mingwX64(installOption);
+        } else if(platform == Platform.UNIX) {
+            if(arch.equals("aarch64")) {
+                installer = PlatformInstaller.linuxX64(installOption);
+            } else {
+                TorBinaryResource linuxArm64 = TorBinaryResource.from(TorBinaryResource.OS.Linux, "arm64",
+                        "588496f3164d52b91f17e4db3372d8dfefa6366a8df265eebd4a28d4128992aa",
+                        List.of("libevent-2.1.so.7", "libstdc++.so.6", "libcrypto.so.1.1", "tor", "libssl.so.1.1"));
+                installer = PlatformInstaller.custom(installOption, linuxArm64);
+            }
+        } else {
+            throw new UnsupportedOperationException("Tor is not supported on " + platform + " " + arch);
+        }
+
         TorConfigProviderJvm torConfigProviderJvm = new TorConfigProviderJvm() {
             @NotNull
             @Override
@@ -74,20 +104,50 @@ public class Main extends Application {
         torManager = TorManager.newInstance(jvmLoader);
 
         torManager.debug(true);
-        torManager.addListener(new TorManagerEvent.SealedListener() {
+        torManager.addListener(new TorManagerEvent.Listener() {
             @Override
-            public void onEvent(@NotNull TorManagerEvent torManagerEvent) {
-                System.out.println(torManagerEvent.toString());
+            public void managerEventError(Throwable t) {
+                System.out.println("Error: " + t.getMessage());
             }
 
             @Override
-            public void onEvent(@NotNull TorEvent.Type.SingleLineEvent singleLineEvent, @NotNull String s) {
-                System.out.println(singleLineEvent.toString() + " - " + s);
+            public void managerEventWarn(@NotNull String message) {
+                System.out.println("Warn: " + message);
             }
 
             @Override
-            public void onEvent(@NotNull TorEvent.Type.MultiLineEvent multiLineEvent, @NotNull List<String> list) {
-                System.out.println(multiLineEvent.toString() + " - " + list.toString());
+            public void managerEventInfo(@NotNull String message) {
+                System.out.println("Info: " + message);
+            }
+
+            @Override
+            public void managerEventDebug(@NotNull String message) {
+                System.out.println("Debug: " + message);
+            }
+
+            @Override
+            public void managerEventAddressInfo(TorManagerEvent.AddressInfo info) {
+                if (info.isNull) {
+                    // Tear down HttpClient
+                } else if(onionAddress != null)  {
+                    try {
+                        ProxyAddress socks = info.socksInfoToProxyAddress().iterator().next();
+                        Socket socket = new Socket(new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(socks.address.getValue(), socks.port.getValue())));
+                        socket.connect(new InetSocketAddress(onionAddress, 50001));
+
+                        PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
+                        out.println("{\"jsonrpc\":\"2.0\",\"method\":\"server.version\",\"params\":[\"Sparrow\",\"1.4\"],\"id\":1}");
+                        out.flush();
+
+                        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+                        String response = in.readLine();
+                        System.out.println(response);
+
+                        socket.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         });
 
@@ -100,7 +160,7 @@ public class Main extends Application {
 
         primaryStage.setOnCloseRequest(event -> {
             torManager.destroy(true, () -> {
-                Platform.exit();
+                javafx.application.Platform.exit();
                 return Unit.INSTANCE;
             });
             event.consume();
@@ -121,7 +181,7 @@ public class Main extends Application {
             // of the TorController, resulting in Tor stopping b/c it's control port owner has
             // cut the connection.
             torManager.destroy(false, () -> {
-                Platform.exit();
+                javafx.application.Platform.exit();
                 return Unit.INSTANCE;
             });
         }
