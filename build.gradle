@@ -10,7 +10,7 @@ version '1.0-SNAPSHOT'
 def os = org.gradle.internal.os.OperatingSystem.current()
 def osName = os.getFamilyName()
 
-def vTor = '4.7.13-2'
+def vTor = '4.7.13-3'
 def vKmpTor = '1.4.1'
 def kmpOs = osName
 if(os.macOsX) {
@@ -30,7 +30,8 @@ repositories {
 }
 
 application {
-    mainClass.set('com.sparrowwallet.kmptorjava.Main')
+    mainModule = 'com.sparrowwallet.kmptorjava'
+    mainClass = 'com.sparrowwallet.kmptorjava.Main'
 }
 
 javafx {
@@ -86,10 +87,14 @@ extraJavaModuleInfo {
         requires('java.management')
     }
     if(kmpOs == "linux" && kmpArch == "arm64") {
-        module("kmp-tor-binary-$kmpOs$kmpArch-jvm-${vTor}.jar", "kmp.tor.binary.$kmpOs$kmpArch", "$vTor")
+        module("kmp-tor-binary-$kmpOs$kmpArch-jvm-${vTor}.jar", "kmp.tor.binary.$kmpOs$kmpArch", "$vTor") {
+            exports("io.matthewnelson.kmp.tor.binary.$kmpOs.$kmpArch")
+            exports("kmptor.$kmpOs.$kmpArch")
+        }
     } else {
         module("kmp-tor-binary-$kmpOs$kmpArch-jvm-${vTor}.jar", "kmp.tor.binary.$kmpOs$kmpArch", "$vTor") {
-            exports('kmptor.macos.arm64')
+            exports("io.matthewnelson.kmp.tor.binary.$kmpOs.$kmpArch")
+            exports("kmptor.$kmpOs.$kmpArch")
         }
     }
     module("kmp-tor-binary-extract-jvm-${vTor}.jar", 'kmp.tor.binary.extract.jvm', "$vTor") {
@@ -166,6 +171,7 @@ extraJavaModuleInfo {
         exports('io.matthewnelson.kmp.tor.ext.callback.controller.common.control.usecase')
     }
     module("kmp-tor-binary-geoip-jvm-${vTor}.jar", 'kmp.tor.binary.geoip.jvm', "${vTor}") {
+        exports('io.matthewnelson.kmp.tor.binary.geoip')
         exports('kmptor')
     }
     module("encoding-base16-jvm-1.2.1.jar", 'encoding.base16.jvm', "1.2.1") {
