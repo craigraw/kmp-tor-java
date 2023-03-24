@@ -36,7 +36,7 @@ public class Main extends Application {
         btn.setOnAction(event -> {
             TorService torService = new TorService();
             torService.setOnSucceeded(event1 -> {
-                System.out.println("Tor startup completed successfully");
+                log.info("Tor startup completed successfully");
                 Tor.setDefault(torService.getValue());
 
                 if(onionAddress != null)  {
@@ -50,22 +50,22 @@ public class Main extends Application {
 
                         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
                         String response = in.readLine();
-                        System.out.println(response);
+                        log.info("Received: " + response);
 
                         socket.close();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        log.error("Error connecting to " + onionAddress, e);
                     }
                 } else {
                     Tor.getDefault().getTorManager().signal(TorControlSignal.Signal.NewNym, throwable -> {
-                        System.out.println("Failed to signal newnym");
+                        log.error("Failed to signal newnym");
                     }, successEvent -> {
-                        System.out.println("Signalled newnym");
+                        log.info("Signalled newnym");
                     });
                 }
             });
             torService.setOnFailed(event1 -> {
-                System.out.println("Tor failed to start with error " + event1.getSource().getException().getMessage());
+                log.error("Tor failed to start", event1.getSource().getException());
             });
             torService.start();
         });
@@ -75,6 +75,8 @@ public class Main extends Application {
                 Tor.getDefault().getTorManager().destroy(true, successEvent -> {
                     javafx.application.Platform.exit();
                 });
+            } else {
+                javafx.application.Platform.exit();
             }
             event.consume();
         });
@@ -93,6 +95,8 @@ public class Main extends Application {
             Tor.getDefault().getTorManager().destroy(true, successEvent -> {
                 javafx.application.Platform.exit();
             });
+        } else {
+            javafx.application.Platform.exit();
         }
     }
 }
