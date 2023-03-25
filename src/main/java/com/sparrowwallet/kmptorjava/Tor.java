@@ -25,7 +25,7 @@ public class Tor {
     private static Tor tor;
 
     private final Path path = Path.invoke(System.getProperty("user.home")).builder().addSegment(".kmp-tor-java").build();
-    private final TorManager instance;
+    private final CallbackTorManager instance;
     private Proxy proxy;
 
     public Tor() {
@@ -89,10 +89,10 @@ public class Tor {
         };
 
         KmpTorLoaderJvm jvmLoader = new KmpTorLoaderJvm(installer, torConfigProviderJvm);
-        this.instance = TorManager.newInstance(jvmLoader);
+        TorManager torManager = TorManager.newInstance(jvmLoader);
 
-        instance.debug(true);
-        instance.addListener(new TorManagerEvent.Listener() {
+        torManager.debug(true);
+        torManager.addListener(new TorManagerEvent.Listener() {
             @Override
             public void managerEventWarn(@NotNull String message) {
                 log.warn(message);
@@ -118,6 +118,10 @@ public class Tor {
                 }
             }
         });
+
+        this.instance = new CallbackTorManager(torManager, uncaughtException -> {
+            log.error("Uncaught exception from CallbackTorManager", uncaughtException);
+        });
     }
 
     public static Tor getDefault() {
@@ -129,9 +133,7 @@ public class Tor {
     }
 
     public CallbackTorManager getTorManager() {
-        return new CallbackTorManager(instance, uncaughtException -> {
-            log.error("Uncaught exception from CallbackTorOperationManager", uncaughtException);
-        });
+        return instance;
     }
 
     public Proxy getProxy() {

@@ -10,8 +10,8 @@ version '1.0-SNAPSHOT'
 def os = org.gradle.internal.os.OperatingSystem.current()
 def osName = os.getFamilyName()
 
-def vTor = '4.7.13-3'
-def vKmpTor = '1.4.1'
+def vTor = '4.7.13-4'
+def vKmpTor = '1.4.2'
 def kmpOs = osName
 if(os.macOsX) {
     kmpOs = "macos"
@@ -56,6 +56,10 @@ dependencies {
         exclude group: 'org.slf4j'
     }
     implementation ('org.slf4j:slf4j-api:2.0.5')
+}
+
+run {
+    applicationDefaultJvmArgs = ["--add-reads=kotlin.stdlib=kotlinx.coroutines.core.jvm"]
 }
 
 test {
@@ -176,11 +180,14 @@ extraJavaModuleInfo {
     }
     module("encoding-base16-jvm-1.2.1.jar", 'encoding.base16.jvm', "1.2.1") {
         exports('io.matthewnelson.encoding.base16')
+        requires('encoding.core.jvm')
+        requires('kotlin.stdlib')
     }
     module("encoding-base32-jvm-1.2.1.jar", 'encoding.base32.jvm', "1.2.1")
     module("encoding-base64-jvm-1.2.1.jar", 'encoding.base64.jvm', "1.2.1")
     module("encoding-core-jvm-1.2.1.jar", 'encoding.core.jvm', "1.2.1") {
         exports('io.matthewnelson.encoding.core')
+        requires('kotlin.stdlib')
     }
     module("parcelize-jvm-0.1.2.jar", 'parcelize.jvm', "0.1.2") {
         exports('io.matthewnelson.component.parcelize')
