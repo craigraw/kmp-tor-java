@@ -92,7 +92,7 @@ extraJavaModuleInfo {
     }
     if(kmpOs == "linux" && kmpArch == "arm64") {
         module("kmp-tor-binary-$kmpOs$kmpArch-jvm-${vTor}.jar", "kmp.tor.binary.$kmpOs$kmpArch", "$vTor") {
-            exports("io.matthewnelson.kmp.tor.binary.$kmpOs.$kmpArch")
+            exports("io.matthewnelson.kmp.tor.resource.$kmpOs.$kmpArch")
             exports("kmptor.$kmpOs.$kmpArch")
         }
     } else {
