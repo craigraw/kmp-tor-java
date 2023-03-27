@@ -110,6 +110,7 @@ extraJavaModuleInfo {
     }
     module("kmp-tor-manager-jvm-${vKmpTor}.jar", 'kmp.tor.manager.jvm', "$vKmpTor") {
         exports('io.matthewnelson.kmp.tor.manager')
+        exports('io.matthewnelson.kmp.tor.manager.util')
         requires('kmp.tor.controller.common.jvm')
         requires('kmp.tor.manager.common.jvm')
         requires('kotlin.stdlib')

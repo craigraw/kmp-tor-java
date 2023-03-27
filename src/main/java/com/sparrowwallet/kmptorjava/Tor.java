@@ -4,6 +4,7 @@ import io.matthewnelson.kmp.tor.KmpTorLoaderJvm;
 import io.matthewnelson.kmp.tor.PlatformInstaller;
 import io.matthewnelson.kmp.tor.TorConfigProviderJvm;
 import io.matthewnelson.kmp.tor.binary.extract.TorBinaryResource;
+import io.matthewnelson.kmp.tor.common.address.Port;
 import io.matthewnelson.kmp.tor.common.address.PortProxy;
 import io.matthewnelson.kmp.tor.common.address.ProxyAddress;
 import io.matthewnelson.kmp.tor.controller.common.config.TorConfig;
@@ -11,6 +12,7 @@ import io.matthewnelson.kmp.tor.controller.common.file.Path;
 import io.matthewnelson.kmp.tor.ext.callback.manager.CallbackTorManager;
 import io.matthewnelson.kmp.tor.manager.TorManager;
 import io.matthewnelson.kmp.tor.manager.common.event.TorManagerEvent;
+import io.matthewnelson.kmp.tor.manager.util.PortUtil;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +111,7 @@ public class Tor {
             }
 
             @Override
-            public void managerEventAddressInfo(TorManagerEvent.AddressInfo info) {
+            public void managerEventAddressInfo(@NotNull TorManagerEvent.AddressInfo info) {
                 if (info.isNull) {
                     proxy = null;
                 } else {
@@ -138,5 +140,9 @@ public class Tor {
 
     public Proxy getProxy() {
         return proxy;
+    }
+
+    public static boolean isRunningExternally() {
+        return !PortUtil.isTcpPortAvailable(Port.invoke(9050));
     }
 }

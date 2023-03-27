@@ -10,7 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.net.Authenticator;
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
@@ -34,6 +36,8 @@ public class Main extends Application {
         Button btn = new Button();
         btn.setText("Start Tor");
         btn.setOnAction(event -> {
+            log.info("Is running externally: " + Tor.isRunningExternally());
+
             TorService torService = new TorService();
             torService.setOnSucceeded(event1 -> {
                 log.info("Tor startup completed successfully");
@@ -41,6 +45,12 @@ public class Main extends Application {
 
                 if(onionAddress != null)  {
                     try {
+                        Authenticator.setDefault(new Authenticator() {
+                            public PasswordAuthentication getPasswordAuthentication() {
+                                return (new PasswordAuthentication("user", "testme".toCharArray()));
+                            }
+                        });
+
                         Socket socket = new Socket(Tor.getDefault().getProxy());
                         socket.connect(new InetSocketAddress(onionAddress, 50001));
 
